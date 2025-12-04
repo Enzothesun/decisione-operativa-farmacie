@@ -59,7 +59,7 @@
 </div>
 
 <script>
-// ORARI APERTURA / CHIUSURA
+// ---- Orari apertura/chiusura uffici (solo per parte procedurale) ----
 function isUfficioAperto(dt) {
     const g = dt.getDay(), h = dt.getHours(), m = dt.getMinutes();
     if (g >= 1 && g <= 4)
@@ -69,7 +69,7 @@ function isUfficioAperto(dt) {
     return false;
 }
 
-// SOTTOZONE DISPONIBILI
+// ---- Sottozone disponibili per area ----
 const sottozoneByArea = {
     brescia: [
         "Franciacorta",
@@ -96,7 +96,6 @@ const sottozoneByArea = {
     ]
 };
 
-// POPOLA SECONDA SELECT
 function popolaSottozone() {
     const area = document.getElementById("area").value;
     const zonaSel = document.getElementById("zona");
@@ -127,7 +126,7 @@ function popolaSottozone() {
     });
 }
 
-// COSTI
+// ---- Costi per area ----
 const costi = {
     brescia:"25 €",
     emilia:"50 €",
@@ -136,9 +135,30 @@ const costi = {
     resto:"0 €"
 };
 
-// VERIFICA PIANO CONSEGNE PRECISO
+// ---- Giorni lavorativi (lun–ven) ----
+function isWorkingDay(d) {
+    const g = d.getDay();
+    return g >= 1 && g <= 5; // lun=1 … ven=5
+}
+
+function addDays(d, n) {
+    return new Date(d.getTime() + n*24*60*60*1000);
+}
+
+// aggiunge N giorni lavorativi (salta sab e dom)
+function addWorkingDays(startDate, n) {
+    let d = new Date(startDate.getTime());
+    let added = 0;
+    while (added < n) {
+        d = addDays(d, 1);
+        if (isWorkingDay(d)) added++;
+    }
+    return d;
+}
+
+// ---- Piano consegne preciso per area/zona/giorno ----
 function isInPiano(area, zona, giorno) {
-    // giorno: "lunedi"..."venerdi"
+    // giorno: "lunedi" ... "venerdi"
     if (area === "brescia") {
         if (giorno === "lunedi" || giorno === "mercoledi" || giorno === "venerdi") {
             return ["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia"]
@@ -162,20 +182,64 @@ function isInPiano(area, zona, giorno) {
     }
 
     if (area === "torino") {
-        // comuni di Torino tutti i giorni lun–ven
+        // Comuni di Torino in piano lun–ven
         return ["lunedi","martedi","mercoledi","giovedi","venerdi"].includes(giorno);
     }
 
     if (area === "sardegna") {
-        // Sud Sardegna solo lun, gio, ven
-        if (!["Sud Sardegna"].includes(zona)) return false;
+        // Sud Sardegna lun, gio, ven
+        if (zona !== "Sud Sardegna") return false;
         return ["lunedi","giovedi","venerdi"].includes(giorno);
     }
 
     return false;
 }
 
-// FUNZIONE PRINCIPALE
+// ---- Calcolo giorno garantito (cut-off + piano) ----
+function computeGuaranteedDate(area, zona, dtIns) {
+    const onlyDate = new Date(dtIns.getFullYear(), dtIns.getMonth(), dtIns.getDate());
+    let wd = onlyDate.getDay();
+    let baseDate;
+    let offset;
+
+    // sabato (6) o domenica (0) → come lunedì dopo le 13 → +2 giorni lavorativi
+    if (wd === 6 || wd === 0) {
+        // spostiamo al lunedì successivo
+        const daysToMon = (wd === 6) ? 2 : 1; // sab→+2, dom→+1
+        baseDate = addDays(onlyDate, daysToMon);
+        offset = 2;
+    } else {
+        // lun–ven → vediamo orario cut-off 13:00
+        baseDate = onlyDate;
+        const h = dtIns.getHours();
+        const m = dtIns.getMinutes();
+        const entroCutoff = (h < 13) || (h === 13 && m === 0);
+        offset = entroCutoff ? 1 : 2;
+    }
+
+    // primo giorno garantito "tecnico" (solo su base giorni lavorativi)
+    let guaranteed = addWorkingDays(baseDate, offset);
+
+    // lo adeguiamo al piano consegne reale (spostandoci in avanti finché non troviamo un giorno in piano)
+    const giorni = ["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
+    while (true) {
+        const gName = giorni[guaranteed.getDay()];
+        if (isWorkingDay(guaranteed) && isInPiano(area, zona, gName)) break;
+        guaranteed = addWorkingDays(guaranteed, 1);
+    }
+
+    return guaranteed;
+}
+
+// ---- Utility formato data DD/MM/YYYY ----
+function formatDate(d) {
+    const day = String(d.getDate()).padStart(2,'0');
+    const month = String(d.getMonth()+1).padStart(2,'0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+// ---- Funzione principale ----
 function calcola() {
     const area = document.getElementById("area").value;
     const zona = document.getElementById("zona").value;
@@ -190,12 +254,11 @@ function calcola() {
 
     const dtRich = new Date(dRich);
     const dtIns = new Date(dIns);
-
     const giorni = ["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
     const giornoRich = giorni[dtRich.getDay()];
     const apertura = isUfficioAperto(dtIns);
 
-    // Resto d'Italia: logica separata
+    // Resto d'Italia → logica separata
     if (area === "resto") {
         res.innerHTML = `
             <div class="output-title">📍 Area: Resto d’Italia</div>
@@ -209,16 +272,32 @@ function calcola() {
         return;
     }
 
-    const inPiano = isInPiano(area, zona, giornoRich);
+    const inPianoRichiesto = isInPiano(area, zona, giornoRich);
+    const guaranteed = computeGuaranteedDate(area, zona, dtIns);
+    const giornoGarantitoNome = giorni[guaranteed.getDay()];
     const costo = costi[area];
+
+    // Confronto richiesto vs garantito (solo data)
+    const reqDateOnly = new Date(dtRich.getFullYear(), dtRich.getMonth(), dtRich.getDate());
+    const guarDateOnly = new Date(guaranteed.getFullYear(), guaranteed.getMonth(), guaranteed.getDate());
+
+    let supplemento = "NO";
+    let motivoSupp = "La data richiesta è uguale o successiva al giorno garantito dal cut-off.";
+
+    if (reqDateOnly.getTime() < guarDateOnly.getTime()) {
+        supplemento = "SI";
+        motivoSupp = "La farmacia richiede una consegna in data precedente rispetto al giorno garantito dal cut-off.";
+    }
 
     let html = `
         <div class="output-title">📍 Area: ${area.toUpperCase()}</div>
         <b>Zona:</b> ${zona}<br>
-        <b>Giorno richiesto:</b> ${giornoRich.toUpperCase()}<br>
-        <b>Inserimento:</b> ${apertura ? "<span class='highlight-green'>Uffici APERTI</span>" : "<span class='highlight-red'>Uffici CHIUSI</span>"}<br>
-        <b>Piano consegne:</b> ${inPiano ? "✔ In piano" : "⛔ Fuori piano"}<br>
-        <b>Supplemento:</b> ${costo}<br><br>
+        <b>Giorno richiesto:</b> ${giornoRich.toUpperCase()} (${formatDate(reqDateOnly)})<br>
+        <b>Inserimento ordine:</b> ${apertura ? "<span class='highlight-green'>Uffici APERTI</span>" : "<span class='highlight-red'>Uffici CHIUSI</span>"}<br>
+        <b>Giorno garantito (cut-off + piano):</b> ${giornoGarantitoNome.toUpperCase()} (${formatDate(guaranteed)})<br>
+        <b>Piano consegne (giorno richiesto):</b> ${inPianoRichiesto ? "✔ In piano" : "⛔ Fuori piano"}<br>
+        <b>Supplemento:</b> ${supplemento} (importo zona: ${costo})<br>
+        <small>${motivoSupp}</small><br><br>
         <div class="output-title">🔹 Procedura Operativa</div>
     `;
 
