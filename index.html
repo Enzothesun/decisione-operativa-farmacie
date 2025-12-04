@@ -28,14 +28,19 @@
     <div class="section">
         <h2>Input</h2>
 
-        <label>Zona farmacia</label>
-        <select id="zona">
+        <label>Area farmacia</label>
+        <select id="area" onchange="popolaSottozone()">
             <option value="">— Seleziona —</option>
             <option value="brescia">Brescia e provincia</option>
             <option value="torino">Comuni di Torino</option>
             <option value="emilia">Emilia Romagna</option>
             <option value="sardegna">Sud Sardegna</option>
             <option value="resto">Resto d’Italia</option>
+        </select>
+
+        <label>Zona / territorio</label>
+        <select id="zona">
+            <option value="">— Seleziona l'area prima —</option>
         </select>
 
         <label>Giorno richiesto dalla farmacia</label>
@@ -54,20 +59,75 @@
 </div>
 
 <script>
+// ORARI APERTURA / CHIUSURA
 function isUfficioAperto(dt) {
     const g = dt.getDay(), h = dt.getHours(), m = dt.getMinutes();
-    if (g >= 1 && g <= 4) return (h > 8 && h < 17) || (h === 8 && m >= 0) || (h === 17 && m === 0);
-    if (g === 5) return (h > 8 && h < 16) || (h === 8 && m >= 0) || (h === 16 && m === 0);
+    if (g >= 1 && g <= 4)
+        return (h > 8 && h < 17) || (h === 8 && m >= 0) || (h === 17 && m === 0);
+    if (g === 5)
+        return (h > 8 && h < 16) || (h === 8 && m >= 0) || (h === 16 && m === 0);
     return false;
 }
 
-const piano = {
-    brescia:{lunedi:1, martedi:1, mercoledi:1, giovedi:1, venerdi:1},
-    emilia:{lunedi:1, martedi:1, mercoledi:1, giovedi:1, venerdi:1},
-    torino:{lunedi:1, martedi:1, mercoledi:1, giovedi:1, venerdi:1},
-    sardegna:{lunedi:1, martedi:0, mercoledi:0, giovedi:1, venerdi:1}
+// SOTTOZONE DISPONIBILI
+const sottozoneByArea = {
+    brescia: [
+        "Franciacorta",
+        "Lago d'Iseo",
+        "Brescia città",
+        "Bassa Bresciana",
+        "Valsabbia",
+        "Vallecamonica",
+        "Lago di Garda",
+        "Valtrompia"
+    ],
+    emilia: [
+        "Cesena",
+        "Forlì",
+        "Ravenna",
+        "Faenza",
+        "Lugo"
+    ],
+    torino: [
+        "Comuni di Torino"
+    ],
+    sardegna: [
+        "Sud Sardegna"
+    ]
 };
 
+// POPOLA SECONDA SELECT
+function popolaSottozone() {
+    const area = document.getElementById("area").value;
+    const zonaSel = document.getElementById("zona");
+    zonaSel.innerHTML = "";
+
+    if (!area || area === "resto") {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = area === "resto"
+            ? "Per il Resto d'Italia non serve selezionare la zona"
+            : "— Seleziona l'area prima —";
+        zonaSel.appendChild(opt);
+        zonaSel.disabled = (area === "resto" || !area);
+        return;
+    }
+
+    zonaSel.disabled = false;
+    const first = document.createElement("option");
+    first.value = "";
+    first.textContent = "— Seleziona zona —";
+    zonaSel.appendChild(first);
+
+    sottozoneByArea[area].forEach(z => {
+        const opt = document.createElement("option");
+        opt.value = z;
+        opt.textContent = z;
+        zonaSel.appendChild(opt);
+    });
+}
+
+// COSTI
 const costi = {
     brescia:"25 €",
     emilia:"50 €",
@@ -76,55 +136,114 @@ const costi = {
     resto:"0 €"
 };
 
+// VERIFICA PIANO CONSEGNE PRECISO
+function isInPiano(area, zona, giorno) {
+    // giorno: "lunedi"..."venerdi"
+    if (area === "brescia") {
+        if (giorno === "lunedi" || giorno === "mercoledi" || giorno === "venerdi") {
+            return ["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia"]
+                .includes(zona);
+        }
+        if (giorno === "martedi" || giorno === "giovedi") {
+            return ["Vallecamonica","Lago di Garda","Brescia città","Valtrompia"]
+                .includes(zona);
+        }
+        return false;
+    }
+
+    if (area === "emilia") {
+        if (giorno === "lunedi" || giorno === "mercoledi" || giorno === "venerdi") {
+            return ["Cesena","Ravenna","Faenza","Lugo"].includes(zona);
+        }
+        if (giorno === "martedi" || giorno === "giovedi") {
+            return ["Forlì","Ravenna","Faenza","Lugo"].includes(zona);
+        }
+        return false;
+    }
+
+    if (area === "torino") {
+        // comuni di Torino tutti i giorni lun–ven
+        return ["lunedi","martedi","mercoledi","giovedi","venerdi"].includes(giorno);
+    }
+
+    if (area === "sardegna") {
+        // Sud Sardegna solo lun, gio, ven
+        if (!["Sud Sardegna"].includes(zona)) return false;
+        return ["lunedi","giovedi","venerdi"].includes(giorno);
+    }
+
+    return false;
+}
+
+// FUNZIONE PRINCIPALE
 function calcola() {
-    const zona=document.getElementById("zona").value,
-          dRich=document.getElementById("dataRichiesta").value,
-          dIns=document.getElementById("dataInserimento").value,
-          res=document.getElementById("result");
+    const area = document.getElementById("area").value;
+    const zona = document.getElementById("zona").value;
+    const dRich = document.getElementById("dataRichiesta").value;
+    const dIns = document.getElementById("dataInserimento").value;
+    const res = document.getElementById("result");
 
-    if(!zona||!dRich||!dIns){res.innerHTML="<span class='highlight-red'>⚠️ Compila tutti i campi.</span>";return;}
-
-    const dtRich=new Date(dRich), dtIns=new Date(dIns);
-    const giorni=["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
-    const giornoRich=giorni[dtRich.getDay()], apertura=isUfficioAperto(dtIns);
-
-    if(zona==="resto"){
-        res.innerHTML=`<div class='output-title'>📍 Zona: Resto d’Italia</div>
-        ✔ Richiesta telefonica consentita<br>
-        ✔ Nessun obbligo Infomed<br>
-        ✔ Costi: 0 €<br><br>
-        <b>Procedura:</b><br>– Accogliere richiesta telefonica<br>– Fine`;
+    if (!area || !dRich || !dIns || (area !== "resto" && !zona)) {
+        res.innerHTML = "<span class='highlight-red'>⚠️ Compila tutti i campi (inclusa la zona se richiesta).</span>";
         return;
     }
 
-    const isInPiano=piano[zona][giornoRich]===1;
-    const costo=costi[zona];
+    const dtRich = new Date(dRich);
+    const dtIns = new Date(dIns);
 
-    let html=`<div class='output-title'>📍 Zona: ${zona.toUpperCase()}</div>
-        <b>Giorno richiesto:</b> ${giornoRich.toUpperCase()}<br>
-        <b>Inserimento:</b> ${apertura?"<span class='highlight-green'>Uffici APERTI</span>":"<span class='highlight-red'>Uffici CHIUSI</span>"}<br>
-        <b>Piano consegne:</b> ${isInPiano?"✔ In piano":"⛔ Fuori piano"}<br>
-        <b>Supplemento:</b> ${costo}<br><br>
-        <div class='output-title'>🔹 Procedura Operativa</div>`;
+    const giorni = ["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
+    const giornoRich = giorni[dtRich.getDay()];
+    const apertura = isUfficioAperto(dtIns);
 
-    if(apertura){
-        html+=`– NON prendere in carico la richiesta<br>
-        – NON inserire nulla su Infomed<br>
-        – Invitare la farmacia a inserire su Infomed<br>
-        – Aprire <b>Generica Brescia – per tutte le zone</b><br>
-        – Gestione passa ad Assago`;
-    } else {
-        html+=`<u>Se giorni successivi:</u><br>
-        – Invitare la farmacia a usare Infomed<br>
-        – Aprire <b>Generica Brescia</b><br><br>
-        <u>Se URGENZA (sera/festivi):</u><br>
-        – L’operatore può prendere in carico<br>
-        – Comunicare eventuali costi<br>
-        – Contattare il trasportatore<br>
-        – Aprire <b>Generica Brescia</b>`;
+    // Resto d'Italia: logica separata
+    if (area === "resto") {
+        res.innerHTML = `
+            <div class="output-title">📍 Area: Resto d’Italia</div>
+            ✔ La farmacia può fare richiesta telefonica<br>
+            ✔ Nessun obbligo di inserimento su Infomed<br>
+            ✔ Costi supplementari: 0 €<br><br>
+            <b>Procedura:</b><br>
+            – Accogliere la richiesta telefonicamente<br>
+            – Fine
+        `;
+        return;
     }
 
-    res.innerHTML=html;
+    const inPiano = isInPiano(area, zona, giornoRich);
+    const costo = costi[area];
+
+    let html = `
+        <div class="output-title">📍 Area: ${area.toUpperCase()}</div>
+        <b>Zona:</b> ${zona}<br>
+        <b>Giorno richiesto:</b> ${giornoRich.toUpperCase()}<br>
+        <b>Inserimento:</b> ${apertura ? "<span class='highlight-green'>Uffici APERTI</span>" : "<span class='highlight-red'>Uffici CHIUSI</span>"}<br>
+        <b>Piano consegne:</b> ${inPiano ? "✔ In piano" : "⛔ Fuori piano"}<br>
+        <b>Supplemento:</b> ${costo}<br><br>
+        <div class="output-title">🔹 Procedura Operativa</div>
+    `;
+
+    if (apertura) {
+        html += `
+            – NON prendere in carico la richiesta<br>
+            – NON inserire nulla su Infomed<br>
+            – Invitare la farmacia a inserire su Infomed<br>
+            – Aprire <b>Generica Brescia – per tutte le zone</b><br>
+            – Gestione passa ad Assago
+        `;
+    } else {
+        html += `
+            <u>Se richiesta per giorni successivi:</u><br>
+            – Invitare la farmacia a usare Infomed<br>
+            – Aprire <b>Generica Brescia</b><br><br>
+            <u>Se URGENZA (sera/festivi):</u><br>
+            – L’operatore può prendere in carico<br>
+            – Comunicare eventuali costi<br>
+            – Contattare il trasportatore<br>
+            – Aprire <b>Generica Brescia</b>
+        `;
+    }
+
+    res.innerHTML = html;
 }
 </script>
 
