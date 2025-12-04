@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Decisione Operativa – Farmacie Medigas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f2f4f7; margin: 0; padding: 0; }
+    header { background: #1e4e79; color: white; padding: 24px; text-align: center; font-size: 24px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+    .section { background: white; padding: 22px; border-radius: 14px; margin-bottom: 25px; box-shadow: 0 3px 10px rgba(0,0,0,0.12); }
+    .section h2 { margin-top: 0; color: #1e4e79; font-size: 20px; font-weight: 600; border-left: 6px solid #1e4e79; padding-left: 10px; }
+    label { font-weight: 600; display: block; margin-top: 14px; font-size: 15px; }
+    select, input { width: 100%; padding: 12px; margin-top: 6px; border-radius: 8px; border: 1px solid #b3b3b3; background: #fafafa; font-size: 15px; }
+    button { width: 100%; padding: 15px; margin-top: 25px; background: #1e4e79; color: white; border: none; font-size: 18px; border-radius: 10px; cursor: pointer; font-weight: 600; box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
+    button:hover { background: #163d61; }
+    .output { background: #ffffff; padding: 25px; margin-top: 15px; border-left: 6px solid #1e4e79; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.12); font-size: 16px; line-height: 1.6; }
+    .output-title { font-size: 20px; font-weight: 600; color: #1e4e79; margin-bottom: 12px; }
+    .highlight-red { color: #c62828; font-weight: 600; }
+    .highlight-green { color: #2e7d32; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>💊 Decisione Operativa – Farmacie Medigas</header>
+
+<div class="container">
+    <div class="section">
+        <h2>Input</h2>
+
+        <label>Zona farmacia</label>
+        <select id="zona">
+            <option value="">— Seleziona —</option>
+            <option value="brescia">Brescia e provincia</option>
+            <option value="torino">Comuni di Torino</option>
+            <option value="emilia">Emilia Romagna</option>
+            <option value="sardegna">Sud Sardegna</option>
+            <option value="resto">Resto d’Italia</option>
+        </select>
+
+        <label>Giorno richiesto dalla farmacia</label>
+        <input type="date" id="dataRichiesta">
+
+        <label>Data e ora inserimento su Infomed</label>
+        <input type="datetime-local" id="dataInserimento">
+
+        <button onclick="calcola()">Genera Decisione Operativa</button>
+    </div>
+
+    <div class="section">
+        <h2>Risultato</h2>
+        <div id="result" class="output">Compila i campi per generare la decisione operativa.</div>
+    </div>
+</div>
+
+<script>
+function isUfficioAperto(dt) {
+    const g = dt.getDay(), h = dt.getHours(), m = dt.getMinutes();
+    if (g >= 1 && g <= 4) return (h > 8 && h < 17) || (h === 8 && m >= 0) || (h === 17 && m === 0);
+    if (g === 5) return (h > 8 && h < 16) || (h === 8 && m >= 0) || (h === 16 && m === 0);
+    return false;
+}
+
+const piano = {
+    brescia:{lunedi:1, martedi:1, mercoledi:1, giovedi:1, venerdi:1},
+    emilia:{lunedi:1, martedi:1, mercoledi:1, giovedi:1, venerdi:1},
+    torino:{lunedi:1, martedi:1, mercoledi:1, giovedi:1, venerdi:1},
+    sardegna:{lunedi:1, martedi:0, mercoledi:0, giovedi:1, venerdi:1}
+};
+
+const costi = {
+    brescia:"25 €",
+    emilia:"50 €",
+    torino:"50 €",
+    sardegna:"— (non disponibili)",
+    resto:"0 €"
+};
+
+function calcola() {
+    const zona=document.getElementById("zona").value,
+          dRich=document.getElementById("dataRichiesta").value,
+          dIns=document.getElementById("dataInserimento").value,
+          res=document.getElementById("result");
+
+    if(!zona||!dRich||!dIns){res.innerHTML="<span class='highlight-red'>⚠️ Compila tutti i campi.</span>";return;}
+
+    const dtRich=new Date(dRich), dtIns=new Date(dIns);
+    const giorni=["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
+    const giornoRich=giorni[dtRich.getDay()], apertura=isUfficioAperto(dtIns);
+
+    if(zona==="resto"){
+        res.innerHTML=`<div class='output-title'>📍 Zona: Resto d’Italia</div>
+        ✔ Richiesta telefonica consentita<br>
+        ✔ Nessun obbligo Infomed<br>
+        ✔ Costi: 0 €<br><br>
+        <b>Procedura:</b><br>– Accogliere richiesta telefonica<br>– Fine`;
+        return;
+    }
+
+    const isInPiano=piano[zona][giornoRich]===1;
+    const costo=costi[zona];
+
+    let html=`<div class='output-title'>📍 Zona: ${zona.toUpperCase()}</div>
+        <b>Giorno richiesto:</b> ${giornoRich.toUpperCase()}<br>
+        <b>Inserimento:</b> ${apertura?"<span class='highlight-green'>Uffici APERTI</span>":"<span class='highlight-red'>Uffici CHIUSI</span>"}<br>
+        <b>Piano consegne:</b> ${isInPiano?"✔ In piano":"⛔ Fuori piano"}<br>
+        <b>Supplemento:</b> ${costo}<br><br>
+        <div class='output-title'>🔹 Procedura Operativa</div>`;
+
+    if(apertura){
+        html+=`– NON prendere in carico la richiesta<br>
+        – NON inserire nulla su Infomed<br>
+        – Invitare la farmacia a inserire su Infomed<br>
+        – Aprire <b>Generica Brescia – per tutte le zone</b><br>
+        – Gestione passa ad Assago`;
+    } else {
+        html+=`<u>Se giorni successivi:</u><br>
+        – Invitare la farmacia a usare Infomed<br>
+        – Aprire <b>Generica Brescia</b><br><br>
+        <u>Se URGENZA (sera/festivi):</u><br>
+        – L’operatore può prendere in carico<br>
+        – Comunicare eventuali costi<br>
+        – Contattare il trasportatore<br>
+        – Aprire <b>Generica Brescia</b>`;
+    }
+
+    res.innerHTML=html;
+}
+</script>
+
+</body>
+</html>
