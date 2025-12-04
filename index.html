@@ -59,7 +59,7 @@
 </div>
 
 <script>
-// ---- Orari apertura/chiusura uffici (solo per parte procedurale) ----
+// ---- Orari apertura/chiusura uffici (solo per testo procedurale) ----
 function isUfficioAperto(dt) {
     const g = dt.getDay(), h = dt.getHours(), m = dt.getMinutes();
     if (g >= 1 && g <= 4)
@@ -69,7 +69,7 @@ function isUfficioAperto(dt) {
     return false;
 }
 
-// ---- Sottozone disponibili per area ----
+// ---- Sottozone per area ----
 const sottozoneByArea = {
     brescia: [
         "Franciacorta",
@@ -138,7 +138,7 @@ const costi = {
 // ---- Giorni lavorativi (lun–ven) ----
 function isWorkingDay(d) {
     const g = d.getDay();
-    return g >= 1 && g <= 5; // lun=1 … ven=5
+    return g >= 1 && g <= 5;
 }
 
 function addDays(d, n) {
@@ -156,9 +156,9 @@ function addWorkingDays(startDate, n) {
     return d;
 }
 
-// ---- Piano consegne preciso per area/zona/giorno ----
+// ---- Piano consegne preciso ----
 function isInPiano(area, zona, giorno) {
-    // giorno: "lunedi" ... "venerdi"
+    // giorno: "lunedi"..."venerdi"
     if (area === "brescia") {
         if (giorno === "lunedi" || giorno === "mercoledi" || giorno === "venerdi") {
             return ["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia"]
@@ -182,12 +182,10 @@ function isInPiano(area, zona, giorno) {
     }
 
     if (area === "torino") {
-        // Comuni di Torino in piano lun–ven
         return ["lunedi","martedi","mercoledi","giovedi","venerdi"].includes(giorno);
     }
 
     if (area === "sardegna") {
-        // Sud Sardegna lun, gio, ven
         if (zona !== "Sud Sardegna") return false;
         return ["lunedi","giovedi","venerdi"].includes(giorno);
     }
@@ -197,30 +195,30 @@ function isInPiano(area, zona, giorno) {
 
 // ---- Calcolo giorno garantito (cut-off + piano) ----
 function computeGuaranteedDate(area, zona, dtIns) {
-    const onlyDate = new Date(dtIns.getFullYear(), dtIns.getMonth(), dtIns.getDate());
-    let wd = onlyDate.getDay();
+    const dateOnly = new Date(dtIns.getFullYear(), dtIns.getMonth(), dtIns.getDate());
+    const g = dateOnly.getDay();
     let baseDate;
     let offset;
 
-    // sabato (6) o domenica (0) → come lunedì dopo le 13 → +2 giorni lavorativi
-    if (wd === 6 || wd === 0) {
-        // spostiamo al lunedì successivo
-        const daysToMon = (wd === 6) ? 2 : 1; // sab→+2, dom→+1
-        baseDate = addDays(onlyDate, daysToMon);
-        offset = 2;
+    // Sabato (6) o domenica (0) = come lunedì entro le 13
+    if (g === 6 || g === 0) {
+        // sposto al lunedì successivo
+        const toMon = (g === 6) ? 2 : 1; // sab→+2, dom→+1
+        baseDate = addDays(dateOnly, toMon);
+        offset = 1; // entro le 13
     } else {
-        // lun–ven → vediamo orario cut-off 13:00
-        baseDate = onlyDate;
+        // Lun–ven: applico cut-off 13:00
+        baseDate = dateOnly;
         const h = dtIns.getHours();
         const m = dtIns.getMinutes();
         const entroCutoff = (h < 13) || (h === 13 && m === 0);
         offset = entroCutoff ? 1 : 2;
     }
 
-    // primo giorno garantito "tecnico" (solo su base giorni lavorativi)
+    // Primo calcolo tecnico su base giorni lavorativi
     let guaranteed = addWorkingDays(baseDate, offset);
 
-    // lo adeguiamo al piano consegne reale (spostandoci in avanti finché non troviamo un giorno in piano)
+    // Adeguo al piano consegne reale
     const giorni = ["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
     while (true) {
         const gName = giorni[guaranteed.getDay()];
@@ -231,7 +229,7 @@ function computeGuaranteedDate(area, zona, dtIns) {
     return guaranteed;
 }
 
-// ---- Utility formato data DD/MM/YYYY ----
+// ---- Utility formato data ----
 function formatDate(d) {
     const day = String(d.getDate()).padStart(2,'0');
     const month = String(d.getMonth()+1).padStart(2,'0');
@@ -277,54 +275,28 @@ function calcola() {
     const giornoGarantitoNome = giorni[guaranteed.getDay()];
     const costo = costi[area];
 
-    // Confronto richiesto vs garantito (solo data)
+    // Normalizzo a data-only
     const reqDateOnly = new Date(dtRich.getFullYear(), dtRich.getMonth(), dtRich.getDate());
     const guarDateOnly = new Date(guaranteed.getFullYear(), guaranteed.getMonth(), guaranteed.getDate());
 
+    // ---- Calcolo supplemento ----
     let supplemento = "NO";
-    let motivoSupp = "La data richiesta è uguale o successiva al giorno garantito dal cut-off.";
+    let motivoSupp = "La data richiesta è uguale o successiva al giorno garantito dal cut-off ed è prevista dal piano consegne.";
 
-    if (reqDateOnly.getTime() < guarDateOnly.getTime()) {
+    // 1) Giorno richiesto NON in piano → sempre supplemento SÌ
+    if (!inPianoRichiesto) {
         supplemento = "SI";
-        motivoSupp = "La farmacia richiede una consegna in data precedente rispetto al giorno garantito dal cut-off.";
+        motivoSupp = "La farmacia richiede un giorno non previsto dal piano consegne per questa zona.";
+    } else {
+        // 2) È in piano: confronto con il giorno garantito
+        if (reqDateOnly.getTime() < guarDateOnly.getTime()) {
+            supplemento = "SI";
+            motivoSupp = "La farmacia richiede una consegna in data precedente rispetto al giorno garantito dal cut-off.";
+        }
     }
 
     let html = `
         <div class="output-title">📍 Area: ${area.toUpperCase()}</div>
         <b>Zona:</b> ${zona}<br>
         <b>Giorno richiesto:</b> ${giornoRich.toUpperCase()} (${formatDate(reqDateOnly)})<br>
-        <b>Inserimento ordine:</b> ${apertura ? "<span class='highlight-green'>Uffici APERTI</span>" : "<span class='highlight-red'>Uffici CHIUSI</span>"}<br>
-        <b>Giorno garantito (cut-off + piano):</b> ${giornoGarantitoNome.toUpperCase()} (${formatDate(guaranteed)})<br>
-        <b>Piano consegne (giorno richiesto):</b> ${inPianoRichiesto ? "✔ In piano" : "⛔ Fuori piano"}<br>
-        <b>Supplemento:</b> ${supplemento} (importo zona: ${costo})<br>
-        <small>${motivoSupp}</small><br><br>
-        <div class="output-title">🔹 Procedura Operativa</div>
-    `;
-
-    if (apertura) {
-        html += `
-            – NON prendere in carico la richiesta<br>
-            – NON inserire nulla su Infomed<br>
-            – Invitare la farmacia a inserire su Infomed<br>
-            – Aprire <b>Generica Brescia – per tutte le zone</b><br>
-            – Gestione passa ad Assago
-        `;
-    } else {
-        html += `
-            <u>Se richiesta per giorni successivi:</u><br>
-            – Invitare la farmacia a usare Infomed<br>
-            – Aprire <b>Generica Brescia</b><br><br>
-            <u>Se URGENZA (sera/festivi):</u><br>
-            – L’operatore può prendere in carico<br>
-            – Comunicare eventuali costi<br>
-            – Contattare il trasportatore<br>
-            – Aprire <b>Generica Brescia</b>
-        `;
-    }
-
-    res.innerHTML = html;
-}
-</script>
-
-</body>
-</html>
+        <b>Inserimento ordine:</b> ${apertura ? "<span class='highlight-green'>Uffici APERTI</span>" : "<span class='highlight-r
