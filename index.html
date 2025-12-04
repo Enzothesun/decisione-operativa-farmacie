@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Decisione Operativa – Farmacie Medigas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f2f4f7; margin: 0; padding: 0; }
+    header { background: #1e4e79; color: white; padding: 24px; text-align: center; font-size: 24px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+    .section { background: white; padding: 22px; border-radius: 14px; margin-bottom: 25px; box-shadow: 0 3px 10px rgba(0,0,0,0.12); }
+    .section h2 { margin-top: 0; color: #1e4e79; font-size: 20px; font-weight: 600; border-left: 6px solid #1e4e79; padding-left: 10px; }
+    label { font-weight: 600; display: block; margin-top: 14px; font-size: 15px; }
+    select, input { width: 100%; padding: 12px; margin-top: 6px; border-radius: 8px; border: 1px solid #b3b3b3; background: #fafafa; font-size: 15px; }
+    button { width: 100%; padding: 15px; margin-top: 25px; background: #1e4e79; color: white; border: none; font-size: 18px; border-radius: 10px; cursor: pointer; font-weight: 600; box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
+    button:hover { background: #163d61; }
+    .output { background: #ffffff; padding: 25px; margin-top: 15px; border-left: 6px solid #1e4e79; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.12); font-size: 16px; line-height: 1.6; white-space: pre-line; }
+    .output-title { font-size: 20px; font-weight: 600; color: #1e4e79; margin-bottom: 12px; }
+    .highlight-red { color: #c62828; font-weight: 600; }
+    .highlight-green { color: #2e7d32; font-weight: 600; }
+</style>
+</head>
+
+<body>
+
+<header>💊 Decisione Operativa – Farmacie Medigas</header>
+
+<div class="container">
+
+    <div class="section">
+        <h2>Input</h2>
+
+        <label>Area farmacia</label>
+        <select id="area" onchange="popolaSottozone()">
+            <option value="">— Seleziona —</option>
+            <option value="brescia">Brescia e provincia</option>
+            <option value="torino">Comuni di Torino</option>
+            <option value="emilia">Emilia Romagna</option>
+            <option value="sardegna">Sud Sardegna</option>
+            <option value="resto">Resto d’Italia</option>
+        </select>
+
+        <label>Zona / territorio</label>
+        <select id="zona">
+            <option value="">— Seleziona l'area prima —</option>
+        </select>
+
+        <label>Giorno richiesto dalla farmacia</label>
+        <input type="date" id="dataRichiesta">
+
+        <label>Data e ora inserimento su Infomed</label>
+        <input type="datetime-local" id="dataInserimento">
+
+        <button onclick="calcola()">Genera Decisione Operativa</button>
+    </div>
+
+    <div class="section">
+        <h2>Risultato</h2>
+        <div id="result" class="output"></div>
+    </div>
+
+</div>
+
+<script>
+// ------------------------------
+//       SOTTOZONE
+// ------------------------------
+const sottozoneByArea = {
+    brescia: [
+        "Franciacorta",
+        "Lago d'Iseo",
+        "Brescia città",
+        "Bassa Bresciana",
+        "Valsabbia",
+        "Vallecamonica",
+        "Lago di Garda",
+        "Valtrompia"
+    ],
+    emilia: [
+        "Cesena",
+        "Forlì",
+        "Ravenna",
+        "Faenza",
+        "Lugo"
+    ],
+    torino: ["Comuni di Torino"],
+    sardegna: ["Sud Sardegna"]
+};
+
+function popolaSottozone() {
+    const area = document.getElementById("area").value;
+    const zonaSel = document.getElementById("zona");
+    zonaSel.innerHTML = "";
+
+    if (!area || area === "resto") {
+        zonaSel.disabled = true;
+        zonaSel.innerHTML = `<option value="">${area === "resto" ? "Nessuna sottozona necessaria" : "— Seleziona l'area prima —"}</option>`;
+        return;
+    }
+
+    zonaSel.disabled = false;
+    zonaSel.innerHTML = `<option value="">— Seleziona zona —</option>`;
+
+    sottozoneByArea[area].forEach(z => {
+        zonaSel.innerHTML += `<option value="${z}">${z}</option>`;
+    });
+}
+
+// ------------------------------
+//     COSTI SUPPLEMENTO
+// ------------------------------
+const costi = {
+    brescia: "25 €",
+    emilia: "50 €",
+    torino: "50 €",
+    sardegna: "— (non disponibili)",
+    resto: "0 €"
+};
+
+// ------------------------------
+//    FUNZIONI SUPPORTO
+// ------------------------------
+function isWorkingDay(d) {
+    return d.getDay() >= 1 && d.getDay() <= 5;
+}
+
+function addDays(d, n) {
+    return new Date(d.getTime() + n * 24 * 60 * 60 * 1000);
+}
+
+function addWorkingDays(start, n) {
+    let d = new Date(start);
+    let added = 0;
+    while (added < n) {
+        d = addDays(d, 1);
+        if (isWorkingDay(d)) added++;
+    }
+    return d;
+}
+
+function formatDate(d) {
+    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+// ------------------------------
+//     PIANO CONSEGNE
+// ------------------------------
+function isInPiano(area, zona, g) {
+    const map = {
+        brescia: {
+            lunedi: ["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia"],
+            martedi: ["Vallecamonica","Lago di Garda","Brescia città","Valtrompia"],
+            mercoledi: ["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia"],
+            giovedi: ["Vallecamonica","Lago di Garda","Brescia città","Valtrompia"],
+            venerdi: ["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia"]
+        },
+        emilia: {
+            lunedi: ["Cesena","Ravenna","Faenza","Lugo"],
+            martedi: ["Forlì","Ravenna","Faenza","Lugo"],
+            mercoledi: ["Cesena","Ravenna","Faenza","Lugo"],
+            giovedi: ["Forlì","Ravenna","Faenza","Lugo"],
+            venerdi: ["Cesena","Ravenna","Faenza","Lugo"]
+        },
+        torino: {
+            lunedi: ["Comuni di Torino"],
+            martedi: ["Comuni di Torino"],
+            mercoledi: ["Comuni di Torino"],
+            giovedi: ["Comuni di Torino"],
+            venerdi: ["Comuni di Torino"]
+        },
+        sardegna: {
+            lunedi: ["Sud Sardegna"],
+            martedi: [],
+            mercoledi: [],
+            giovedi: ["Sud Sardegna"],
+            venerdi: ["Sud Sardegna"]
+        }
+    };
+
+    return map[area]?.[g]?.includes(zona) ?? false;
+}
+
+// ------------------------------
+//     CUT-OFF + GIORNO GARANTITO
+// ------------------------------
+function computeGuaranteedDate(area, zona, dtIns) {
+    const d0 = new Date(dtIns.getFullYear(), dtIns.getMonth(), dtIns.getDate());
+    const day = d0.getDay();
+
+    let baseDate;
+    let offset;
+
+    // Sabato / Domenica = come lunedì entro le 13 → +1 giorno
+    if (day === 6 || day === 0) {
+        const toMonday = (day === 6 ? 2 : 1);
+        baseDate = addDays(d0, toMonday);
+        offset = 1;
+    } else {
+        const h = dtIns.getHours();
+        const m = dtIns.getMinutes();
+        const entro = h < 13 || (h === 13 && m === 0);
+        offset = entro ? 1 : 2;
+        baseDate = d0;
+    }
+
+    let guaranteed = addWorkingDays(baseDate, offset);
+
+    const giorni = ["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
+
+    while (true) {
+        const gName = giorni[guaranteed.getDay()];
+        if (isWorkingDay(guaranteed) && isInPiano(area, zona, gName)) break;
+        guaranteed = addWorkingDays(guaranteed, 1);
+    }
+
+    return guaranteed;
+}
+
+// ------------------------------
+//     CALCOLO COMPLETO
+// ------------------------------
+function calcola() {
+    const area = document.getElementById("area").value;
+    const zona = document.getElementById("zona").value;
+    const dRich = document.getElementById("dataRichiesta").value;
+    const dIns = document.getElementById("dataInserimento").value;
+    const out = document.getElementById("result");
+
+    if (!area || !dRich || !dIns || (area !== "resto" && !zona)) {
+        out.innerHTML = "⚠️ Compila tutti i campi (inclusa la zona).";
+        return;
+    }
+
+    const dtRich = new Date(dRich);
+    const dtIns = new Date(dIns);
+
+    const giorni = ["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
+    const giornoRich = giorni[dtRich.getDay()];
+
+    // Resto d’Italia → molto più semplice
+    if (area === "resto") {
+        out.innerHTML =
+`Area: RESTO D’ITALIA
+La farmacia può chiamare telefonicamente.
+Nessun costo aggiuntivo.
+Fine.`;
+        return;
+    }
+
+    // Piano richiesto
+    const inPiano = isInPiano(area, zona, giornoRich);
+
+    // Giorno garantito
+    const dtGarantito = computeGuaranteedDate(area, zona, dtIns);
+    const giornoGarantito = giorni[dtGarantito.getDay()];
+
+    const reqDay = new Date(dtRich.getFullYear(), dtRich.getMonth(), dtRich.getDate());
+    const garDay = new Date(dtGarantito.getFullYear(), dtGarantito.getMonth(), dtGarantito.getDate());
+
+    // -----------------------
+    //      SUPPLEMENTO
+    // -----------------------
+    let supplemento = "NO";
+    let motivo = "La richiesta rispetta il cut-off e il piano consegne.";
+
+    if (!inPiano) {
+        supplemento = "SI";
+        motivo = "La farmacia richiede un giorno non previsto dal piano consegne.";
+    } else if (reqDay < garDay) {
+        supplemento = "SI";
+        motivo = "La farmacia richiede un giorno precedente a quello garantito dal cut-off.";
+    }
+
+    out.innerHTML =
+`📍 Area: ${area.toUpperCase()}
+Zona: ${zona}
+
+Giorno richiesto: ${giornoRich.toUpperCase()} (${formatDate(reqDay)})
+Giorno garantito (cut-off + piano): ${giornoGarantito.toUpperCase()} (${formatDate(garDay)})
+
+Piano consegne (richiesto): ${inPiano ? "✔ In piano" : "⛔ Fuori piano"}
+Supplemento: ${supplemento} (importo zona: ${costi[area]})
+Motivo: ${motivo}`;
+}
+</script>
+
+</body>
+</html>
