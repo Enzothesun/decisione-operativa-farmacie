@@ -17,27 +17,11 @@
     button:hover { background: #163d61; }
     .output { background: #ffffff; padding: 25px; margin-top: 15px; border-left: 6px solid #1e4e79; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.12); font-size: 16px; line-height: 1.6; white-space: normal; }
 
-    /* Layout due colonne (nuova attivazione + consegna ordinaria) */
-    .col-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        margin-top: 10px;
-    }
-    .col {
-        flex: 1;
-        min-width: 320px;
-        background: #ffffff;
-        padding: 18px;
-        border-radius: 12px;
-        border-left: 5px solid #1e4e79;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.10);
-    }
-    .col h3 {
-        margin: 0 0 10px 0;
-        font-size: 18px;
-        color: #1e4e79;
-    }
+    /* LAYOUT DUE COLONNE */
+    .col-container { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 10px; }
+    .col { flex: 1; min-width: 320px; background: #ffffff; padding: 18px; border-radius: 12px;
+           border-left: 5px solid #1e4e79; box-shadow: 0 3px 8px rgba(0,0,0,0.10); }
+    .col h3 { margin: 0 0 10px 0; font-size: 18px; color: #1e4e79; }
     .col ul { padding-left: 22px; }
 </style>
 </head>
@@ -52,13 +36,18 @@
     <h2>Input</h2>
 
     <label>Area farmacia</label>
-    <select id="area">
+    <select id="area" onchange="popolaSottozone()">
         <option value="">— Seleziona —</option>
         <option value="resto">Resto d'Italia</option>
         <option value="brescia">Brescia e provincia</option>
         <option value="torino">Comuni Torino</option>
         <option value="emilia">Emilia Romagna</option>
         <option value="sudsardegna">Sud Sardegna</option>
+    </select>
+
+    <label>Sottozona</label>
+    <select id="zona">
+        <option value="">— Seleziona l'area prima —</option>
     </select>
 
     <label>Giorno richiesto dalla farmacia</label>
@@ -78,6 +67,40 @@
 </div>
 
 <script>
+
+/* ================================
+   SOTTOZONE
+================================ */
+const sottozoneByArea = {
+    brescia: ["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia","Vallecamonica","Lago di Garda","Valtrompia"],
+    torino: ["Comuni di Torino"],
+    emilia: ["Cesena","Forlì","Ravenna","Faenza","Lugo"],
+    sudsardegna: ["Sud Sardegna"]
+};
+
+function popolaSottozone() {
+    const area = document.getElementById("area").value;
+    const zona = document.getElementById("zona");
+
+    zona.innerHTML = "";
+
+    if (!area || area === "resto") {
+        zona.disabled = true;
+        zona.innerHTML = `<option value="">${
+            area === "resto" ? "Nessuna sottozona richiesta" : "— Seleziona l'area prima —"
+        }</option>`;
+        return;
+    }
+
+    zona.disabled = false;
+    zona.innerHTML = `<option value="">— Seleziona sottozona —</option>`;
+
+    sottozoneByArea[area].forEach(z => zona.innerHTML += `<option value="${z}">${z}</option>`);
+}
+
+/* ================================
+   FUNZIONE PRINCIPALE
+================================ */
 function calcola() {
     const area = document.getElementById("area").value;
     const out = document.getElementById("result");
@@ -139,7 +162,7 @@ function calcola() {
 
         <b>Regola del venerdì → sabato</b>
         <ul>
-            <li><b>Prima delle 19:00</b> → la consegna si fa <b>venerdì</b>, non sabato</li>
+            <li><b>Prima delle 19:00</b> → consegna il <b>venerdì</b> (non sabato)</li>
             <li><b>Dopo le 19:00</b> → consegna possibile il sabato</li>
         </ul>
 
@@ -153,7 +176,7 @@ function calcola() {
         <b>Riepilogo</b>
         <ul>
             <li>In giornata → contattare vettore</li>
-            <li>Weekend/festivi → reperibile</li>
+            <li>Sabato/domenica/festivo → reperibile</li>
             <li>Venerdì prima 19 → consegna venerdì</li>
             <li>Venerdì dopo 19 → consegna sabato</li>
         </ul>
@@ -164,8 +187,10 @@ function calcola() {
         return;
     }
 
-    out.innerHTML = "Per questa area è già attiva la Decisione Operativa specifica.";
+    /* AREE NON RESTO D’ITALIA → MESSAGGIO BASE (il calcolo effettivo lo aggiungeremo quando serve) */
+    out.innerHTML = "Per questa area è attiva la Decisione Operativa specifica (piano consegne e supplementi).";
 }
+
 </script>
 
 </body>
