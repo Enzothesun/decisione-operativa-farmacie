@@ -99,13 +99,6 @@
         line-height: 1.6;
         box-shadow: 0 3px 10px rgba(0,0,0,0.12);
     }
-
-    .output-title {
-        font-size: 20px;
-        color: #1e4e79;
-        font-weight: 700;
-        margin-bottom: 12px;
-    }
 </style>
 </head>
 
@@ -113,12 +106,11 @@
 
 <header>Decisione Operativa – Farmacie Medigas</header>
 
-<!-- 🔵 BANNER PROCEDURA  -->
 <div class="banner">
-    <b>Procedura sempre valida – Farmacie Medigas</b><br>
+    <b>Procedura Medigas</b><br>
     Tutte le farmacie BS, TO, Emilia e Sud Sardegna devono sempre inserire la richiesta sul Portale.<br>
-    <b>Uffici aperti</b> → invita all’inserimento (non si può gestire telefonicamente) + Generica Brescia.<br>
-    <b>Uffici chiusi</b> → in urgenza gestisci la consegna contattando il vettore + invita all’inserimento + Generica Brescia.
+    <b>Uffici aperti:</b> invita all’inserimento (non si gestisce telefonicamente) + Generica Brescia.<br>
+    <b>Uffici chiusi:</b> in urgenza gestisci la consegna + invita all’inserimento + Generica Brescia.
 </div>
 
 <div class="container">
@@ -141,7 +133,7 @@
             <option value="">— Seleziona l'area prima —</option>
         </select>
 
-        <label>Giorno richiesto dalla farmacia</label>
+        <label>Giorno richiesto</label>
         <input type="date" id="dataRichiesta">
 
         <label>Data e ora inserimento su Portale</label>
@@ -162,11 +154,8 @@
    SOTTOZONE PER AREA
 ================================ */
 const sottozoneByArea = {
-    brescia: [
-        "Franciacorta", "Lago d'Iseo", "Brescia città", "Bassa Bresciana",
-        "Valsabbia", "Vallecamonica", "Lago di Garda", "Valtrompia"
-    ],
-    emilia: ["Cesena", "Forlì", "Ravenna", "Faenza", "Lugo"],
+    brescia: ["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia","Vallecamonica","Lago di Garda","Valtrompia"],
+    emilia: ["Cesena","Forlì","Ravenna","Faenza","Lugo"],
     torino: ["Comuni di Torino"],
     sardegna: ["Sud Sardegna"]
 };
@@ -196,150 +185,173 @@ const costi = {
     brescia: "25 €",
     emilia: "50 €",
     torino: "50 €",
-    sardegna: "— (non disponibili)",
+    sardegna: "—",
     resto: "0 €"
 };
 
 /* ================================
-   UTILITY
+   UTILS
 ================================ */
-function isWorkingDay(d) {
-    return d.getDay() >= 1 && d.getDay() <= 5;
+function isWorkingDay(d){return d.getDay()>=1 && d.getDay()<=5;}
+function addDays(d,n){return new Date(d.getTime()+n*86400000);}
+function addWorkingDays(start,n){
+    let d=new Date(start), added=0;
+    while(added<n){d=addDays(d,1);if(isWorkingDay(d)) added++;} return d;
 }
-
-function addDays(d, n) {
-    return new Date(d.getTime() + n * 24 * 60 * 60 * 1000);
-}
-
-function addWorkingDays(start, n) {
-    let d = new Date(start);
-    let added = 0;
-    while (added < n) {
-        d = addDays(d, 1);
-        if (isWorkingDay(d)) added++;
-    }
-    return d;
-}
-
-function formatDate(d) {
+function formatDate(d){
     return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
 /* ================================
-   PIANO CONSEGNE
+   LOGICA PIANI BS / TO / EMILIA / SARDEGNA
 ================================ */
-function isInPiano(area, zona, g) {
-    const map = {
-        brescia: {
-            lunedi: ["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia"],
-            martedi: ["Vallecamonica","Lago di Garda","Brescia città","Valtrompia"],
-            mercoledi: ["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia"],
-            giovedi: ["Vallecamonica","Lago di Garda","Brescia città","Valtrompia"],
-            venerdi: ["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia"]
+function isInPiano(area,zona,day){
+    const map={
+        brescia:{
+            lunedi:["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia"],
+            martedi:["Vallecamonica","Lago di Garda","Brescia città","Valtrompia"],
+            mercoledi:["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia"],
+            giovedi:["Vallecamonica","Lago di Garda","Brescia città","Valtrompia"],
+            venerdi:["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia"]
         },
-        emilia: {
-            lunedi: ["Cesena","Ravenna","Faenza","Lugo"],
-            martedi: ["Forlì","Ravenna","Faenza","Lugo"],
-            mercoledi: ["Cesena","Ravenna","Faenza","Lugo"],
-            giovedi: ["Forlì","Ravenna","Faenza","Lugo"],
-            venerdi: ["Cesena","Ravenna","Faenza","Lugo"]
+        emilia:{
+            lunedi:["Cesena","Ravenna","Faenza","Lugo"],
+            martedi:["Forlì","Ravenna","Faenza","Lugo"],
+            mercoledi:["Cesena","Ravenna","Faenza","Lugo"],
+            giovedi:["Forlì","Ravenna","Faenza","Lugo"],
+            venerdi:["Cesena","Ravenna","Faenza","Lugo"]
         },
-        torino: {
-            lunedi: ["Comuni di Torino"],
-            martedi: ["Comuni di Torino"],
-            mercoledi: ["Comuni di Torino"],
-            giovedi: ["Comuni di Torino"],
-            venerdi: ["Comuni di Torino"]
+        torino:{
+            lunedi:["Comuni di Torino"], martedi:["Comuni di Torino"], mercoledi:["Comuni di Torino"],
+            giovedi:["Comuni di Torino"], venerdi:["Comuni di Torino"]
         },
-        sardegna: {
-            lunedi: ["Sud Sardegna"],
-            giovedi: ["Sud Sardegna"],
-            venerdi: ["Sud Sardegna"]
+        sardegna:{
+            lunedi:["Sud Sardegna"],
+            giovedi:["Sud Sardegna"],
+            venerdi:["Sud Sardegna"]
         }
     };
-    return map[area]?.[g]?.includes(zona) ?? false;
+    return map[area]?.[day]?.includes(zona) ?? false;
 }
 
 /* ================================
    CALCOLO GIORNO GARANTITO
 ================================ */
-function computeGuaranteedDate(area, zona, dtIns) {
-    const d0 = new Date(dtIns.getFullYear(), dtIns.getMonth(), dtIns.getDate());
-    const day = d0.getDay();
+function computeGuaranteedDate(area,zona,dtIns){
+    const giorni=["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
+    const d0=new Date(dtIns.getFullYear(),dtIns.getMonth(),dtIns.getDate());
+    const day=d0.getDay();
 
-    let baseDate;
-    let offset;
-
-    if (day === 6 || day === 0) {
-        const toMonday = (day === 6 ? 2 : 1);
-        baseDate = addDays(d0, toMonday);
-        offset = 1; 
+    let baseDate, offset;
+    if(day===6||day===0){
+        baseDate=addDays(d0, day===6?2:1);
+        offset=1;
     } else {
-        const h = dtIns.getHours();
-        const m = dtIns.getMinutes();
-        const entro = h < 13 || (h === 13 && m === 0);
-        offset = entro ? 1 : 2;
-        baseDate = d0;
+        const h=dtIns.getHours(), m=dtIns.getMinutes();
+        const entro=(h<13 || (h===13 && m===0));
+        offset=entro?1:2;
+        baseDate=d0;
     }
 
-    let guaranteed = addWorkingDays(baseDate, offset);
-    const giorni = ["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
+    let garantito=addWorkingDays(baseDate,offset);
 
-    while (true) {
-        const gName = giorni[guaranteed.getDay()];
-        if (isWorkingDay(guaranteed) && isInPiano(area, zona, gName)) break;
-        guaranteed = addWorkingDays(guaranteed, 1);
+    while(true){
+        const name=giorni[garantito.getDay()];
+        if(isWorkingDay(garantito) && isInPiano(area,zona,name)) break;
+        garantito=addWorkingDays(garantito,1);
     }
 
-    return guaranteed;
+    return garantito;
 }
 
 /* ================================
    FUNZIONE PRINCIPALE
 ================================ */
-function calcola() {
-    const area = document.getElementById("area").value;
-    const zona = document.getElementById("zona").value;
-    const dRich = document.getElementById("dataRichiesta").value;
-    const dIns = document.getElementById("dataInserimento").value;
-    const out = document.getElementById("result");
+function calcola(){
+    const area=document.getElementById("area").value;
+    const zona=document.getElementById("zona").value;
+    const dRich=document.getElementById("dataRichiesta").value;
+    const dIns=document.getElementById("dataInserimento").value;
+    const out=document.getElementById("result");
 
-    if (!area || !dRich || !dIns || (area !== "resto" && !zona)) {
-        out.innerHTML = "⚠️ Compila tutti i campi.";
+    if(!area || !dRich || !dIns || (area!=="resto" && !zona)){
+        out.innerHTML="⚠️ Compila tutti i campi.";
         return;
     }
 
-    const dtRich = new Date(dRich);
-    const dtIns = new Date(dIns);
-    const giorni = ["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
-    const giornoRich = giorni[dtRich.getDay()];
+    const dtRich=new Date(dRich);
+    const dtIns=new Date(dIns);
+    const giorni=["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
+    const giornoRich=giorni[dtRich.getDay()];
 
-    if (area === "resto") {
-        out.innerHTML = `Area Resto d’Italia:
-La farmacia può chiamare telefonicamente.
-Nessun costo aggiuntivo.`;
+    /* ============================================================
+       🔵 SELEZIONE RESTO D’ITALIA → MOSTRA PROCEDURA COMPLETA
+    ============================================================ */
+    if(area==="resto"){
+        out.innerHTML = `
+<b>RESTO D’ITALIA – Procedura completa</b><br><br>
+
+<b>Nuove Attivazioni</b><br>
+La farmacia può richiedere una nuova attivazione.<br>
+L’operatore deve verificare la copertura nell’allegato Medigas su SharePoint.<br><br>
+
+<b>Zone dove Medigas effettua nuove attivazioni O₂ gassoso</b><br>
+<b>Lombardia</b><br>
+• Varese e provincia<br>
+• Como e provincia<br>
+• Lecco e provincia<br>
+• Monza Brianza e provincia<br>
+• Farmacia di Aprica (SO)<br><br>
+
+<b>Lazio</b><br>
+• Roma e provincia<br><br>
+
+<b>Veneto</b><br>
+• Tutta la regione<br><br>
+
+<b>Se NON coperta:</b> “Medigas in questa zona continua a servire solo i pazienti già attivi e non effettua nuove attivazioni.”<br><br>
+
+<b>NB – Nuova attivazione dopo le 17:00 con consegna per il giorno successivo:</b><br>
+L’operatore deve avvisare telefonicamente il vettore che Assago potrebbe inserire la consegna nel piano del giorno seguente.<br><br>
+
+<hr>
+
+<b>Consegne Ordinarie (paziente già attivo)</b><br>
+Le consegne seguono la procedura generale Medigas.<br>
+Lo strumento non calcola giorni di piano né supplementi per il Resto d’Italia.<br><br>
+
+<b>Riepilogo:</b><br>
+• Nuove attivazioni → verifica copertura + eventuale nota 17:00<br>
+• Zone non coperte → NO nuove attivazioni<br>
+• Pazienti già attivi → consegna ordinaria conforme a procedura Medigas<br>
+`;
         return;
     }
 
-    const inPiano = isInPiano(area, zona, giornoRich);
-    const dtGarantito = computeGuaranteedDate(area, zona, dtIns);
-    const giornoGarantito = giorni[dtGarantito.getDay()];
+    /* ============================================================
+       🔵 AREE CALCOLATE (BS / TO / EMILIA / SUD SARDEGNA)
+    ============================================================ */
 
-    const reqDay = new Date(dtRich.getFullYear(), dtRich.getMonth(), dtRich.getDate());
-    const garDay = new Date(dtGarantito.getFullYear(), dtGarantito.getMonth(), dtGarantito.getDate());
+    const inPiano=isInPiano(area,zona, giornoRich);
+    const dtGarantito=computeGuaranteedDate(area,zona,dtIns);
+    const giornoGarantito=giorni[dtGarantito.getDay()];
 
-    let supplemento = "NO";
-    let motivo = "La richiesta rispetta il cut-off e il piano consegne.";
+    const reqDay=new Date(dtRich.getFullYear(),dtRich.getMonth(),dtRich.getDate());
+    const garDay=new Date(dtGarantito.getFullYear(),dtGarantito.getMonth(),dtGarantito.getDate());
 
-    if (!inPiano) {
-        supplemento = "SI";
-        motivo = "Giorno richiesto non previsto dal piano consegne.";
-    } else if (reqDay < garDay) {
-        supplemento = "SI";
-        motivo = "Richiesta precedente al giorno garantito dal cut-off.";
+    let supplemento="NO";
+    let motivo="La richiesta rispetta il cut-off e il piano consegne.";
+
+    if(!inPiano){
+        supplemento="SI";
+        motivo="Giorno richiesto non previsto dal piano consegne.";
+    }
+    else if(reqDay < garDay){
+        supplemento="SI";
+        motivo="Richiesta precedente al giorno garantito dal cut-off.";
     }
 
-    out.innerHTML = 
+    out.innerHTML=
 `📍 <b>Area:</b> ${area.toUpperCase()}<br>
 <b>Zona:</b> ${zona}<br><br>
 
