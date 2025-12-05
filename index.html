@@ -16,8 +16,8 @@
     button { width: 100%; padding: 15px; margin-top: 25px; background: #1e4e79; color: white; border: none; font-size: 18px; border-radius: 10px; cursor: pointer; font-weight: 600; box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
     button:hover { background: #163d61; }
     .output { background: #ffffff; padding: 25px; margin-top: 15px; border-left: 6px solid #1e4e79; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.12); font-size: 16px; line-height: 1.6; white-space: normal; }
-    
-    /* layout nuove attivazioni + consegne */
+
+    /* Layout due colonne (nuova attivazione + consegna ordinaria) */
     .col-container {
         display: flex;
         flex-wrap: wrap;
@@ -77,7 +77,6 @@
 
 </div>
 
-
 <script>
 function calcola() {
     const area = document.getElementById("area").value;
@@ -86,16 +85,16 @@ function calcola() {
     if (area === "resto") {
         out.innerHTML = `
 
-<b>RESTO D’ITALIA – Procedura completa</b><br><br>
+<b>RESTO D’ITALIA – Procedura Operativa</b><br><br>
 
 <div class="col-container">
 
-    <!-- COL SINISTRA -->
+    <!-- COLONNA SINISTRA -->
     <div class="col">
         <h3>Nuova Attivazione O₂ gassoso</h3>
 
         La farmacia può richiedere una nuova attivazione.<br>
-        Verificare la copertura nell’allegato Medigas su SharePoint.<br><br>
+        L’operatore deve verificare se la località rientra nelle zone dove Medigas effettua nuove attivazioni.<br><br>
 
         <b>Zone dove Medigas effettua nuove attivazioni</b><br><br>
 
@@ -121,11 +120,11 @@ function calcola() {
         Se la consegna è per il giorno successivo → avvisare telefonicamente il vettore.
     </div>
 
-    <!-- COL DESTRA -->
+    <!-- COLONNA DESTRA -->
     <div class="col">
         <h3>Consegna Ordinaria (paziente già attivo)</h3>
 
-        La farmacia può richiedere consegna in qualsiasi giorno/orario.<br>
+        La farmacia può richiedere una consegna in <b>qualsiasi giorno e orario</b>.<br>
         Si applica la procedura generale Medigas.<br><br>
 
         <b>Quando chiamare il vettore</b>
@@ -146,7 +145,7 @@ function calcola() {
 
         <b>Richiesta sabato o domenica</b>
         <ul>
-            <li>Gestire come <b>OLT emergenza</b></li>
+            <li>Gestire sempre come <b>OLT emergenza</b></li>
             <li>Chiamare il vettore reperibile</li>
             <li>Inserire Infomed come emergenza</li>
         </ul>
