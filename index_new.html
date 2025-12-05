@@ -26,10 +26,10 @@
     .banner {
         background: #1e4e79;
         color: #ffffff;
-        padding: 14px 18px;
-        margin: 18px;
-        border-radius: 10px;
-        font-size: 14px;
+        padding: 16px 20px;
+        margin: 20px;
+        border-radius: 12px;
+        font-size: 15px;
         line-height: 1.5;
         box-shadow: 0 3px 8px rgba(0,0,0,0.18);
     }
@@ -37,7 +37,7 @@
     .container {
         max-width: 900px;
         margin: 0 auto;
-        padding: 20px;
+        padding: 10px 20px 40px;
     }
 
     .section {
@@ -106,7 +106,6 @@
         font-weight: 700;
         margin-bottom: 12px;
     }
-
 </style>
 </head>
 
@@ -114,6 +113,7 @@
 
 <header>Decisione Operativa – Farmacie Medigas</header>
 
+<!-- 🔵 BANNER PROCEDURA  -->
 <div class="banner">
     <b>Procedura sempre valida – Farmacie Medigas</b><br>
     Tutte le farmacie BS, TO, Emilia e Sud Sardegna devono sempre inserire la richiesta sul Portale.<br>
@@ -253,8 +253,6 @@ function isInPiano(area, zona, g) {
         },
         sardegna: {
             lunedi: ["Sud Sardegna"],
-            martedi: [],
-            mercoledi: [],
             giovedi: ["Sud Sardegna"],
             venerdi: ["Sud Sardegna"]
         }
@@ -342,15 +340,15 @@ Nessun costo aggiuntivo.`;
     }
 
     out.innerHTML = 
-`📍 Area: ${area.toUpperCase()}
-Zona: ${zona}
+`📍 <b>Area:</b> ${area.toUpperCase()}<br>
+<b>Zona:</b> ${zona}<br><br>
 
-Giorno richiesto: ${giornoRich.toUpperCase()} (${formatDate(reqDay)})
-Giorno garantito (cut-off + piano): ${giornoGarantito.toUpperCase()} (${formatDate(garDay)})
+<b>Giorno richiesto:</b> ${giornoRich.toUpperCase()} (${formatDate(reqDay)})<br>
+<b>Giorno garantito (cut-off + piano):</b> ${giornoGarantito.toUpperCase()} (${formatDate(garDay)})<br><br>
 
-Piano consegne (giorno richiesto): ${inPiano ? "✔ In piano" : "⛔ Fuori piano"}
-Supplemento: ${supplemento} (importo zona: ${costi[area]})
-Motivo: ${motivo}`;
+<b>Piano consegne:</b> ${inPiano ? "✔ In piano" : "⛔ Fuori piano"}<br>
+<b>Supplemento:</b> ${supplemento} (importo zona: ${costi[area]})<br>
+<b>Motivo:</b> ${motivo}`;
 }
 </script>
 
