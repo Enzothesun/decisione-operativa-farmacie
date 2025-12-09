@@ -17,7 +17,7 @@
     button:hover { background: #163d61; }
     .output { background: #ffffff; padding: 25px; margin-top: 15px; border-left: 6px solid #1e4e79; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.12); font-size: 16px; line-height: 1.6; white-space: normal; }
 
-    /* Layout due colonne per Resto d'Italia */
+    /* Layout due colonne */
     .col-container { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 10px; }
     .col { flex: 1; min-width: 320px; background: #ffffff; padding: 18px; border-radius: 12px;
            border-left: 5px solid #1e4e79; box-shadow: 0 3px 8px rgba(0,0,0,0.10); }
@@ -32,37 +32,37 @@
 
 <div class="container">
 
-    <div class="section">
-        <h2>Input</h2>
+<div class="section">
+    <h2>Input</h2>
 
-        <label>Area farmacia</label>
-        <select id="area" onchange="popolaSottozone()">
-            <option value="">— Seleziona —</option>
-            <option value="brescia">Brescia e provincia</option>
-            <option value="torino">Comuni Torino</option>
-            <option value="emilia">Emilia Romagna</option>
-            <option value="sardegna">Sud Sardegna</option>
-            <option value="resto">Resto d'Italia</option>
-        </select>
+    <label>Area farmacia</label>
+    <select id="area" onchange="popolaSottozone()">
+        <option value="">— Seleziona —</option>
+        <option value="brescia">Brescia e provincia</option>
+        <option value="torino">Comuni Torino</option>
+        <option value="emilia">Emilia Romagna</option>
+        <option value="sardegna">Sud Sardegna</option>
+        <option value="resto">Resto d'Italia</option>
+    </select>
 
-        <label>Sottozona</label>
-        <select id="zona">
-            <option value="">— Seleziona l'area prima —</option>
-        </select>
+    <label>Sottozona</label>
+    <select id="zona">
+        <option value="">— Seleziona l'area prima —</option>
+    </select>
 
-        <label>Giorno richiesto dalla farmacia</label>
-        <input type="date" id="giornoRichiesto">
+    <label>Giorno richiesto dalla farmacia</label>
+    <input type="date" id="giornoRichiesto">
 
-        <label>Data e ora inserimento su Portale / Infomed</label>
-        <input type="datetime-local" id="inserimento">
+    <label>Data e ora inserimento su Portale / Infomed</label>
+    <input type="datetime-local" id="inserimento">
 
-        <button onclick="calcola()">Genera Decisione Operativa</button>
-    </div>
+    <button onclick="calcola()">Genera Decisione Operativa</button>
+</div>
 
-    <div class="section">
-        <h2>Risultato</h2>
-        <div id="result" class="output">Compila i campi per generare la decisione operativa.</div>
-    </div>
+<div class="section">
+    <h2>Risultato</h2>
+    <div id="result" class="output">Compila i campi per generare la decisione operativa.</div>
+</div>
 
 </div>
 
@@ -87,19 +87,15 @@ function popolaSottozone() {
         return;
     }
 
-    // Niente sottozone per Torino, Sud Sardegna, Resto d'Italia
     if (area === "torino" || area === "sardegna" || area === "resto") {
         zona.disabled = true;
         zona.innerHTML = `<option value="">Nessuna sottozona richiesta</option>`;
         return;
     }
 
-    // Brescia / Emilia → sottozone abilitate
     zona.disabled = false;
     zona.innerHTML = `<option value="">— Seleziona sottozona —</option>`;
-    sottozoneByArea[area].forEach(z => {
-        zona.innerHTML += `<option value="${z}">${z}</option>`;
-    });
+    sottozoneByArea[area].forEach(z => zona.innerHTML += `<option value="${z}">${z}</option>`);
 }
 
 /* ================================
@@ -118,13 +114,9 @@ const costi = {
 ================================ */
 function isWorkingDay(d) {
     const day = d.getDay();
-    return day >= 1 && day <= 5; // lun–ven
+    return day >= 1 && day <= 5;
 }
-
-function addDays(d, n) {
-    return new Date(d.getTime() + n * 86400000);
-}
-
+function addDays(d, n) { return new Date(d.getTime() + n * 86400000); }
 function addWorkingDays(start, n) {
     let d = new Date(start);
     let added = 0;
@@ -134,16 +126,15 @@ function addWorkingDays(start, n) {
     }
     return d;
 }
-
 function formatDate(d) {
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    const mm = String(d.getMonth()+1).padStart(2,"0");
     const yyyy = d.getFullYear();
     return `${dd}/${mm}/${yyyy}`;
 }
 
 /* ================================
-   PIANI CONSEGNE (BS / TO / EMILIA / SUD SARDEGNA)
+   PIANI CONSEGNE (come versione precedente)
 ================================ */
 function isInPiano(area, zona, dayName) {
     const map = {
@@ -162,19 +153,18 @@ function isInPiano(area, zona, dayName) {
             venerdi:   ["Cesena","Ravenna","Faenza","Lugo"]
         },
         torino: {
-            lunedi:    ["Comuni di Torino"],
-            martedi:   ["Comuni di Torino"],
-            mercoledi: ["Comuni di Torino"],
-            giovedi:   ["Comuni di Torino"],
-            venerdi:   ["Comuni di Torino"]
+            lunedi: ["Comuni di Torino"],
+            martedi:["Comuni di Torino"],
+            mercoledi:["Comuni di Torino"],
+            giovedi:["Comuni di Torino"],
+            venerdi:["Comuni di Torino"]
         },
         sardegna: {
-            lunedi:  ["Sud Sardegna"],
-            giovedi: ["Sud Sardegna"],
-            venerdi: ["Sud Sardegna"]
+            lunedi:["Sud Sardegna"],
+            giovedi:["Sud Sardegna"],
+            venerdi:["Sud Sardegna"]
         }
     };
-
     const list = map[area]?.[dayName] || [];
     return list.includes(zona);
 }
@@ -189,12 +179,10 @@ function computeGuaranteedDate(area, zona, dtIns) {
 
     let baseDate, offset;
 
-    // Sabato / Domenica → si conta dal lunedì (1° giorno lavorativo successivo)
     if (day === 6 || day === 0) {
         baseDate = (day === 6) ? addDays(baseDay, 2) : addDays(baseDay, 1);
         offset = 1;
     } else {
-        // Lun–Ven → entro le 13: 1° g.lav successivo, dopo le 13: 2° g.lav successivo
         const h = dtIns.getHours();
         const m = dtIns.getMinutes();
         const entroCutOff = (h < 13) || (h === 13 && m === 0);
@@ -204,7 +192,6 @@ function computeGuaranteedDate(area, zona, dtIns) {
 
     let garantito = addWorkingDays(baseDate, offset);
 
-    // Sposto in avanti finché non trovo un giorno "in piano" per quell'area/zona
     while (true) {
         const name = giorni[garantito.getDay()];
         if (isWorkingDay(garantito) && isInPiano(area, zona, name)) break;
@@ -229,25 +216,26 @@ function calcola() {
         return;
     }
 
-    // Sottozona obbligatoria solo per Brescia / Emilia
     if ((area === "brescia" || area === "emilia") && !zonaSelect) {
         out.innerHTML = "⚠️ Seleziona anche la sottozona.";
         return;
     }
 
-    // Resto d'Italia → solo procedura, niente calcoli
+    /* ======================
+       RESTO D’ITALIA
+    ====================== */
     if (area === "resto") {
         out.innerHTML = `
 <b>RESTO D’ITALIA – Procedura Operativa</b><br><br>
 
 <div class="col-container">
 
-    <!-- COLONNA SINISTRA -->
+    <!-- NUOVA ATTIVAZIONE -->
     <div class="col">
         <h3>Nuova Attivazione O₂ gassoso</h3>
 
-        La farmacia può richiedere una nuova attivazione.<br>
-        L’operatore deve verificare se la località rientra nelle zone dove Medigas effettua nuove attivazioni (scheda sottostante).<br><br>
+        La farmacia può sempre richiedere una nuova attivazione.<br>
+        Verificare se la località rientra nelle zone abilitate.<br><br>
 
         <b>Zone dove Medigas effettua nuove attivazioni</b><br><br>
 
@@ -269,46 +257,65 @@ function calcola() {
         <b>Se NON coperta:</b><br>
         “Medigas in questa zona continua a servire solo i pazienti già attivi e non effettua nuove attivazioni.”<br><br>
 
-        <b>NB – Nuova attivazione dopo le 17:00</b><br>
-        Se la consegna è per il giorno successivo → avvisare telefonicamente il vettore.
+        <b>Se la consegna è per i giorni successivi:</b>
+        <ul>
+            <li>Inserire la nuova attivazione su Infomed</li>
+            <li>Assago richiamerà la farmacia</li>
+        </ul>
+
+        <b>Se la consegna è in giornata:</b>
+        <ul>
+            <li>Non si può garantire la fornitura</li>
+            <li>Dire alla farmacia che sarà richiamata da Assago</li>
+            <li>Avvisare comunque il vettore</li>
+        </ul>
+
+        <b>Orari critici</b>
+        <ul>
+            <li><b>Dopo le 17:00 (lun–gio):</b>  
+                - Giorno successivo → avvisare vettore  
+                - In giornata → autorizzazione commerciale</li>
+            <li><b>Venerdì prima delle 16:00:</b> Assago prende in carico, consegna venerdì</li>
+            <li><b>Venerdì 16:00–19:00:</b> autorizzazione commerciale, consegna venerdì</li>
+            <li><b>Venerdì dopo le 19:00:</b> autorizzazione commerciale, consegna sabato</li>
+            <li><b>Sabato/Domenica:</b> sempre autorizzazione commerciale</li>
+        </ul>
     </div>
 
-    <!-- COLONNA DESTRA -->
+    <!-- CONSEGNA ORDINARIA -->
     <div class="col">
         <h3>Consegna Ordinaria (paziente già attivo)</h3>
 
-        La farmacia può richiedere una consegna in <b>qualsiasi giorno e orario</b>.<br>
-        Si applica la procedura generale Medigas.<br><br>
+        La farmacia può richiedere la consegna in qualsiasi giorno e orario.<br>
+        La fornitura non si nega mai.<br><br>
 
         <b>Quando chiamare il vettore</b>
         <ul>
             <li>Consegna in giornata</li>
-            <li>Consegna per sabato/domenica/festivo <b>solo se:</b></li>
-            <ul>
-                <li>la chiamata arriva il venerdì dopo le 19:00</li>
-                <li>oppure la chiamata arriva sabato/domenica</li>
-            </ul>
+            <li>Richiesta consegna sabato/domenica</li>
         </ul>
 
-        <b>Regola del venerdì → sabato</b>
+        <b>Gestione sabato/domenica</b>
         <ul>
-            <li><b>Prima delle 19:00</b> → consegna il <b>venerdì</b> (non sabato)</li>
-            <li><b>Dopo le 19:00</b> → consegna possibile il sabato</li>
+            <li>Non si programmano consegne per sabato o domenica</li>
+            <li>Giovedì → consegna venerdì</li>
+            <li>Venerdì entro le 19:00 → consegna venerdì</li>
+            <li>Venerdì dopo le 19:00 → possibile consegna sabato</li>
         </ul>
 
-        <b>Richiesta sabato o domenica</b>
+        <b>Richiesta sabato/domenica</b>
         <ul>
-            <li>Gestire sempre come <b>OLT emergenza</b></li>
+            <li>Gestire come OLT emergenza</li>
             <li>Chiamare il vettore reperibile</li>
             <li>Inserire Infomed come emergenza</li>
         </ul>
 
-        <b>Riepilogo</b>
+        <b>Riepilogo rapido</b>
         <ul>
-            <li>In giornata → contattare vettore</li>
-            <li>Sabato/domenica/festivo → reperibile</li>
-            <li>Venerdì prima 19 → consegna venerdì</li>
-            <li>Venerdì dopo 19 → consegna sabato</li>
+            <li>In giornata → chiamare vettore</li>
+            <li>Sab/Dom → reperibile</li>
+            <li>Ven < 19 → consegna venerdì</li>
+            <li>Ven > 19 → possibile sabato</li>
         </ul>
     </div>
 
@@ -317,13 +324,14 @@ function calcola() {
         return;
     }
 
-    // Calcolo per BS / TO / EMILIA / SUD SARDEGNA
+    /* ======================
+       AREE CON CALCOLO
+    ====================== */
     const dtRich = new Date(dRich);
     const dtIns = new Date(dIns);
     const giorni = ["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
     const giornoRich = giorni[dtRich.getDay()];
 
-    // Zona effettiva (anche per torino/sardegna senza sottozona)
     let zonaEffettiva = zonaSelect;
     if (area === "torino") zonaEffettiva = "Comuni di Torino";
     if (area === "sardegna") zonaEffettiva = "Sud Sardegna";
