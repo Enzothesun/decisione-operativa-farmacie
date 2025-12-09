@@ -17,7 +17,7 @@
     button:hover { background: #163d61; }
     .output { background: #ffffff; padding: 25px; margin-top: 15px; border-left: 6px solid #1e4e79; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.12); font-size: 16px; line-height: 1.6; }
 
-    /* Colonne per Resto d’Italia */
+    /* Colonne */
     .col-container { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 10px; }
     .col { flex: 1; min-width: 320px; background: #ffffff; padding: 18px; border-radius: 12px;
            border-left: 5px solid #1e4e79; box-shadow: 0 3px 8px rgba(0,0,0,0.10); }
@@ -71,7 +71,7 @@
 
 <script>
 /* ==========================================================
-   MOSTRA/NASCONDI INPUT PER RESTO D’ITALIA
+   MOSTRA / NASCONDI INPUT PER RESTO D’ITALIA
 ========================================================== */
 function gestisciSezione() {
     const area = document.getElementById("area").value;
@@ -88,7 +88,7 @@ function gestisciSezione() {
 }
 
 /* ==========================================================
-   PROCEDURA COMPLETA RESTO D’ITALIA
+   PROCEDURA RESTO D’ITALIA (APPARE SUBITO)
 ========================================================== */
 function mostraProceduraResto() {
     document.getElementById("result").innerHTML = `
@@ -98,38 +98,39 @@ function mostraProceduraResto() {
 
     <div class="col">
         <h3>Nuova Attivazione O₂ gassoso</h3>
+
         La farmacia può sempre richiedere una nuova attivazione.<br><br>
 
         <b>Zone abilitate</b>
         <ul>
-            <li><b>Lombardia</b>: Varese, Como, Lecco, Monza Brianza, Aprica (SO)</li>
-            <li><b>Lazio</b>: Roma e provincia</li>
-            <li><b>Veneto</b>: tutta la regione</li>
+            <li>Lombardia: Varese, Como, Lecco, Monza Brianza, Aprica (SO)</li>
+            <li>Lazio: Roma e provincia</li>
+            <li>Veneto: tutta la regione</li>
         </ul>
 
-        <b>Se non coperta</b><br>
+        <b>Se la zona NON è coperta:</b><br>
         “Medigas in questa zona non effettua nuove attivazioni.”<br><br>
 
         <b>Consegna per i giorni successivi</b>
         <ul>
-            <li>Inserire su Infomed</li>
+            <li>Inserire la richiesta su Infomed</li>
             <li>Assago richiama la farmacia</li>
         </ul>
 
         <b>Consegna in giornata</b>
         <ul>
             <li>Non garantita</li>
-            <li>Dire che Assago richiamerà</li>
+            <li>La farmacia attende chiamata di Assago</li>
             <li>Avvisare comunque il vettore</li>
         </ul>
 
         <b>Orari critici</b>
         <ul>
             <li>Dopo le 17 (lun–gio): giorno successivo → chiamare vettore</li>
-            <li>Dopo le 17 in giornata → autorizzazione commerciale</li>
-            <li>Venerdì prima 16: consegna venerdì</li>
+            <li>Dopo le 17 in giornata: autorizzazione commerciale</li>
+            <li>Venerdì &lt; 16: consegna venerdì</li>
             <li>Venerdì 16–19: autorizzazione + consegna venerdì</li>
-            <li>Venerdì dopo 19: autorizzazione + possibile sabato</li>
+            <li>Venerdì &gt; 19: autorizzazione + possibile sabato</li>
             <li>Sab/Dom: sempre autorizzazione commerciale</li>
         </ul>
     </div>
@@ -137,36 +138,23 @@ function mostraProceduraResto() {
     <div class="col">
         <h3>Consegna Ordinaria</h3>
 
-        La farmacia può richiedere la consegna in <b>qualsiasi giorno e orario</b>.<br>
-        La fornitura non si nega mai.<br><br>
+        La farmacia può richiedere la consegna in qualsiasi momento.<br>
+        <b>L’operatore deve verificare nella scheda anagrafica se la zona prevede consegna “tutti i giorni” oppure solo in giorni specifici.</b><br><br>
 
-        <b>Quando chiamare il vettore</b>
+        <b>Se la zona prevede consegna tutti i giorni:</b><br>
+        La richiesta può essere programmata liberamente, nel rispetto del <b>cut-off</b> e delle <b>regole operative del venerdì/sabato/domenica</b>.<br><br>
+
+        <b>Se la zona ha giorni di consegna fissati:</b><br>
+        La consegna va inserita per il <b>primo giorno utile</b> previsto dal calendario della zona.<br><br>
+
+        <b>Se la farmacia richiede un giorno NON previsto:</b><br>
+        “Le consegne in questa zona non sono quotidiane. Inserisco per il primo giorno utile.”<br><br>
+
+        <b>Quando chiamare il vettore:</b>
         <ul>
             <li>Consegna in giornata</li>
-            <li>Richiesta per sabato/domenica</li>
-        </ul>
-
-        <b>Regole sabato/domenica</b>
-        <ul>
-            <li>Non si programmano consegne per sab/dom</li>
-            <li>Giovedì → consegna venerdì</li>
-            <li>Venerdì &lt; 19 → consegna venerdì</li>
-            <li>Venerdì &gt; 19 → possibile sabato</li>
-        </ul>
-
-        <b>Se la richiesta arriva sabato o domenica</b>
-        <ul>
-            <li>OLT emergenza</li>
-            <li>Vettore reperibile</li>
-            <li>Infomed emergenza</li>
-        </ul>
-
-        <b>Riepilogo rapido</b>
-        <ul>
-            <li>In giornata → chiamare vettore</li>
-            <li>Sab/Dom → reperibile</li>
-            <li>Ven &lt; 19 → venerdì</li>
-            <li>Ven &gt; 19 → sabato</li>
+            <li>Richiesta per sabato/domenica/festivi</li>
+            <li>Urgenze OLT</li>
         </ul>
     </div>
 
@@ -175,7 +163,7 @@ function mostraProceduraResto() {
 }
 
 /* ==========================================================
-   SOTTOZONE + COSTI
+   SOTTOZONE
 ========================================================== */
 const sottozoneByArea = {
     brescia: ["Franciacorta","Lago d'Iseo","Brescia città","Bassa Bresciana","Valsabbia","Vallecamonica","Lago di Garda","Valtrompia"],
@@ -205,6 +193,9 @@ function popolaSottozone() {
     sottozoneByArea[area].forEach(z => zona.innerHTML += `<option>${z}</option>`);
 }
 
+/* ==========================================================
+   COSTI
+========================================================== */
 const costi = {
     brescia: "25 €",
     emilia: "50 €",
@@ -253,7 +244,7 @@ function isInPiano(area,zona,day){
 }
 
 /* ==========================================================
-   NUOVO CALCOLO GIORNO GARANTITO
+   NUOVO CALCOLO GIORNO GARANTITO (CORRETTO)
 ========================================================== */
 function computeGuaranteedDate(area, zona, dtIns, reqDate){
     const giorni=["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
@@ -273,7 +264,6 @@ function computeGuaranteedDate(area, zona, dtIns, reqDate){
 
     const primoDaCutoff = addWorkingDays(base, offset);
 
-    // Non possiamo garantire prima del giorno richiesto
     let d = new Date(Math.max(primoDaCutoff.getTime(), reqDate.getTime()));
 
     while (true) {
@@ -285,11 +275,11 @@ function computeGuaranteedDate(area, zona, dtIns, reqDate){
 }
 
 /* ==========================================================
-   CALCOLO PRINCIPALE
+   FUNZIONE PRINCIPALE
 ========================================================== */
 function calcola(){
     const area=document.getElementById("area").value;
-    if(area==="resto") return; // già gestito
+    if(area==="resto") return;
 
     const zona=document.getElementById("zona").value;
     const dRich=document.getElementById("giornoRichiesto").value;
@@ -323,11 +313,11 @@ function calcola(){
         if (reqDate < garDate) {
             motivo = "Richiesta precedente al primo giorno utile (cut-off + piano).";
         } else {
-            motivo = "Giorno richiesto fuori piano: consegna possibile con supplemento.";
+            motivo = "Giorno richiesto fuori piano.";
         }
     }
 
-    document.getElementById("result").innerHTML=`
+    out.innerHTML=`
 <b>Area:</b> ${area.toUpperCase()}<br>
 <b>Zona:</b> ${zonaEff}<br><br>
 
@@ -335,7 +325,7 @@ function calcola(){
 <b>Giorno garantito (cut-off + piano):</b> ${giornoGarantito.toUpperCase()} (${formatDate(garDate)})<br><br>
 
 <b>Piano consegne (giorno richiesto):</b> ${inPianoRichiesto ? "✔ In piano" : "⛔ Fuori piano"}<br>
-<b>Supplemento:</b> ${supplemento} (importo: ${costi[area]})<br>
+<b>Supplemento:</b> ${supplemento} (costo: ${costi[area]})<br>
 <b>Motivo:</b> ${motivo}
 `;
 }
