@@ -247,34 +247,45 @@ function isInPiano(area,zona,day){
    NUOVO CALCOLO GIORNO GARANTITO (CORRETTO)
 ========================================================== */
 function computeGuaranteedDate(area, zona, dtIns, reqDate){
-    const giorni=["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
+  const giorni = ["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
 
-    // Data base (solo giorno, senza ora)
-    let start = new Date(dtIns.getFullYear(), dtIns.getMonth(), dtIns.getDate());
+  // Data inserimento (solo giorno)
+  let base = new Date(dtIns.getFullYear(), dtIns.getMonth(), dtIns.getDate());
+  const wd = base.getDay();
 
-    // Se inserimento nel weekend, si parte dal lunedì
-    const wd = start.getDay();
-    if (wd === 6) start = addDays(start, 2); // sabato -> lunedì
-    if (wd === 0) start = addDays(start, 1); // domenica -> lunedì
+  const h = dtIns.getHours(), m = dtIns.getMinutes();
+  const afterCutoff = (h > 13) || (h === 13 && m > 0);
 
-    // Quanti "giri di consegna" devo saltare?
-    const h = dtIns.getHours(), m = dtIns.getMinutes();
-    const entroCutOff = (h < 13) || (h === 13 && m === 0);
-    const occorrenzeDaTrovare = entroCutOff ? 1 : 2;
+  // REGOLA SPECIALE: ven dopo 13 + weekend => come lunedì entro cut-off
+  const isFriAfterCutoff = (wd === 5 && afterCutoff);
+  const isWeekend = (wd === 6 || wd === 0);
 
-    // La data garantita non può essere prima del giorno richiesto
-    let d = new Date(Math.max(start.getTime(), reqDate.getTime()));
+  if (isWeekend || isFriAfterCutoff) {
+    // porta a lunedì
+    if (wd === 6) base = addDays(base, 2);      // sab -> lun
+    else if (wd === 0) base = addDays(base, 1); // dom -> lun
+    else if (wd === 5) base = addDays(base, 3); // ven -> lun
 
-    // Trova la 1ª o 2ª data IN PIANO (non giorni lavorativi)
-    let trovate = 0;
-    while (true) {
-        const dayName = giorni[d.getDay()];
-        if (isWorkingDay(d) && isInPiano(area, zona, dayName)) {
-            trovate++;
-            if (trovate === occorrenzeDaTrovare) return d;
-        }
-        d = addDays(d, 1); // scorri giorno per giorno
-    }
+    // come lunedì ENTRO cut-off
+    var offset = 1;
+  } else {
+    // logica standard
+    const entroCutOff = !afterCutoff;
+    var offset = entroCutOff ? 1 : 2;
+  }
+
+  // Target: 1° o 2° giorno lavorativo successivo
+  const target = addWorkingDays(base, offset);
+
+  // Non prima del giorno richiesto
+  let d = new Date(Math.max(target.getTime(), reqDate.getTime()));
+
+  // Trova il primo giorno IN PIANO a partire da d
+  while (true) {
+    const dayName = giorni[d.getDay()];
+    if (isWorkingDay(d) && isInPiano(area, zona, dayName)) return d;
+    d = addDays(d, 1);
+  }
 }
 
 /* ==========================================================
