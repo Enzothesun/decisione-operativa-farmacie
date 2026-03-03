@@ -249,29 +249,32 @@ function isInPiano(area,zona,day){
 function computeGuaranteedDate(area, zona, dtIns, reqDate){
     const giorni=["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"];
 
-    let base = new Date(dtIns.getFullYear(), dtIns.getMonth(), dtIns.getDate());
-    const weekday = base.getDay();
+    // Data base (solo giorno, senza ora)
+    let start = new Date(dtIns.getFullYear(), dtIns.getMonth(), dtIns.getDate());
 
-    let offset;
-    if (weekday === 6 || weekday === 0) {
-        base = (weekday === 6) ? addDays(base, 2) : addDays(base, 1);
-        offset = 1;
-    } else {
-        const h = dtIns.getHours(), m = dtIns.getMinutes();
-        const entroCutOff = (h < 13) || (h === 13 && m === 0);
-        offset = entroCutOff ? 1 : 2;
-    }
+    // Se inserimento nel weekend, si parte dal lunedì
+    const wd = start.getDay();
+    if (wd === 6) start = addDays(start, 2); // sabato -> lunedì
+    if (wd === 0) start = addDays(start, 1); // domenica -> lunedì
 
-    const primoDaCutoff = addWorkingDays(base, offset);
+    // Quanti "giri di consegna" devo saltare?
+    const h = dtIns.getHours(), m = dtIns.getMinutes();
+    const entroCutOff = (h < 13) || (h === 13 && m === 0);
+    const occorrenzeDaTrovare = entroCutOff ? 1 : 2;
 
-    let d = new Date(Math.max(primoDaCutoff.getTime(), reqDate.getTime()));
+    // La data garantita non può essere prima del giorno richiesto
+    let d = new Date(Math.max(start.getTime(), reqDate.getTime()));
 
+    // Trova la 1ª o 2ª data IN PIANO (non giorni lavorativi)
+    let trovate = 0;
     while (true) {
-        if (isWorkingDay(d) && isInPiano(area, zona, giorni[d.getDay()])) break;
-        d = addWorkingDays(d, 1);
+        const dayName = giorni[d.getDay()];
+        if (isWorkingDay(d) && isInPiano(area, zona, dayName)) {
+            trovate++;
+            if (trovate === occorrenzeDaTrovare) return d;
+        }
+        d = addDays(d, 1); // scorri giorno per giorno
     }
-
-    return d;
 }
 
 /* ==========================================================
