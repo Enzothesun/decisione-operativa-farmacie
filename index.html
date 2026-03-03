@@ -260,6 +260,8 @@ function computeGuaranteedDate(area, zona, dtIns, reqDate){
   const isFriAfterCutoff = (wd === 5 && afterCutoff);
   const isWeekend = (wd === 6 || wd === 0);
 
+  let offset;
+
   if (isWeekend || isFriAfterCutoff) {
     // porta a lunedì
     if (wd === 6) base = addDays(base, 2);      // sab -> lun
@@ -267,36 +269,32 @@ function computeGuaranteedDate(area, zona, dtIns, reqDate){
     else if (wd === 5) base = addDays(base, 3); // ven -> lun
 
     // come lunedì ENTRO cut-off
-    var offset = 1;
+    offset = 1;
   } else {
     // logica standard
     const entroCutOff = !afterCutoff;
-    var offset = entroCutOff ? 1 : 2;
+    offset = entroCutOff ? 1 : 2;
   }
 
   // Target: 1° o 2° giorno lavorativo successivo
   const target = addWorkingDays(base, offset);
 
-  // Non prima del giorno richiesto
-  let d = new Date(Math.max(target.getTime(), reqDate.getTime()));
-
-  // Trova primo giorno in piano >= target
-let d = new Date(target.getTime());
-
-while (!(isWorkingDay(d) && isInPiano(area, zona, giorni[d.getDay()]))) {
-  d = addDays(d, 1);
-}
-
-// Se il giorno richiesto è dopo quello garantito,
-// allora il garantito diventa il primo giorno in piano >= richiesto
-if (reqDate > d) {
-  d = new Date(reqDate.getTime());
+  // 1) primo giorno in piano >= target
+  let d = new Date(target.getTime());
   while (!(isWorkingDay(d) && isInPiano(area, zona, giorni[d.getDay()]))) {
     d = addDays(d, 1);
   }
-}
 
-return d;
+  // 2) se il giorno richiesto è DOPO, allora primo giorno in piano >= richiesto
+  if (reqDate > d) {
+    d = new Date(reqDate.getTime());
+    while (!(isWorkingDay(d) && isInPiano(area, zona, giorni[d.getDay()]))) {
+      d = addDays(d, 1);
+    }
+  }
+
+  return d;
+}
 /* ==========================================================
    FUNZIONE PRINCIPALE
 ========================================================== */
