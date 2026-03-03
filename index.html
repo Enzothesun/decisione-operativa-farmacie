@@ -280,14 +280,23 @@ function computeGuaranteedDate(area, zona, dtIns, reqDate){
   // Non prima del giorno richiesto
   let d = new Date(Math.max(target.getTime(), reqDate.getTime()));
 
-  // Trova il primo giorno IN PIANO a partire da d
-  while (true) {
-    const dayName = giorni[d.getDay()];
-    if (isWorkingDay(d) && isInPiano(area, zona, dayName)) return d;
+  // Trova primo giorno in piano >= target
+let d = new Date(target.getTime());
+
+while (!(isWorkingDay(d) && isInPiano(area, zona, giorni[d.getDay()]))) {
+  d = addDays(d, 1);
+}
+
+// Se il giorno richiesto è dopo quello garantito,
+// allora il garantito diventa il primo giorno in piano >= richiesto
+if (reqDate > d) {
+  d = new Date(reqDate.getTime());
+  while (!(isWorkingDay(d) && isInPiano(area, zona, giorni[d.getDay()]))) {
     d = addDays(d, 1);
   }
 }
 
+return d;
 /* ==========================================================
    FUNZIONE PRINCIPALE
 ========================================================== */
