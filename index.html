@@ -299,8 +299,6 @@ function calcola(){
     if(area==="torino") zonaEff="Comuni di Torino";
     if(area==="sardegna") zonaEff="Sud Sardegna";
 
-    const inPianoRichiesto = isInPiano(area,zonaEff,giornoRich);
-
     const dtGarantito = computeGuaranteedDate(area, zonaEff, dtI, reqDate);
     const giornoGarantito = giorni[dtGarantito.getDay()];
     const garDate = new Date(dtGarantito.getFullYear(), dtGarantito.getMonth(), dtGarantito.getDate());
@@ -322,10 +320,9 @@ function calcola(){
 <b>Zona:</b> ${zonaEff}<br><br>
 
 <b>Giorno richiesto:</b> ${giornoRich.toUpperCase()} (${formatDate(reqDate)})<br>
-<b>Giorno garantito (cut-off + piano):</b> ${giornoGarantito.toUpperCase()} (${formatDate(garDate)})<br><br>
+<b>Giorno garantito senza pagamento:</b> ${giornoGarantito.toUpperCase()} (${formatDate(garDate)})<br><br>
 
-<b>Piano consegne (giorno richiesto):</b> ${inPianoRichiesto ? "✔ In piano" : "⛔ Fuori piano"}<br>
-<b>Supplemento:</b> ${supplemento} (costo: ${costi[area]})<br>
+<b>Supplemento nel giorno richiesto:</b> ${supplemento} (costo: ${costi[area]})<br>
 <b>Motivo:</b> ${motivo}
 `;
 }
