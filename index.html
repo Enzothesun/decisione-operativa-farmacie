@@ -253,16 +253,14 @@ function computeGuaranteedDate(area, zona, dtIns, reqDate){
   const afterCutoff = dtIns.getHours() > 13 ||
     (dtIns.getHours() === 13 && dtIns.getMinutes() > 0);
 
-  // Venerdì dopo le 13, sabato e domenica: come lunedì entro le 13.
-  const speciale = (wd === 5 && afterCutoff) || wd === 6 || wd === 0;
-  if (speciale) {
-    if (wd === 5) base.setDate(base.getDate() + 3);
-    if (wd === 6) base.setDate(base.getDate() + 2);
-    if (wd === 0) base.setDate(base.getDate() + 1);
+  // Le giornate utili sono esclusivamente quelle previste dal piano
+  // della sottozona. Dopo le 13 occorrono due giornate di piano.
+  // Nel fine settimana, la richiesta viene trattata come lunedì entro le 13.
+  const fineSettimana = wd === 6 || wd === 0;
+  if (fineSettimana) {
+    base.setDate(base.getDate() + (wd === 6 ? 2 : 1));
   }
-
-  // Il cut-off conta le giornate del PIANO, non i giorni lavorativi generici.
-  const numeroGiornate = speciale || !afterCutoff ? 1 : 2;
+  const numeroGiornate = fineSettimana || !afterCutoff ? 1 : 2;
   let d = new Date(base);
   let trovate = 0;
   while (trovate < numeroGiornate) {
